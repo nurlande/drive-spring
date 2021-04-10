@@ -1,1 +1,1 @@
-migrate: java -cp target/todo-app-0.0.1-SNAPSHOT.jar:target/dependency/* edu.myrza.todoapp.config.Migrations
+release: java -cp target/todo-app-0.0.1-SNAPSHOT.jar:target/dependency/* edu.myrza.todoapp.config.Migrations
