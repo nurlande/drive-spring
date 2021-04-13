@@ -4,7 +4,6 @@ import edu.myrza.todoapp.model.entity.Edge;
 import edu.myrza.todoapp.model.entity.FileRecord;
 import edu.myrza.todoapp.model.enums.EdgeType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -24,6 +23,9 @@ public interface EdgeRepository extends JpaRepository<Edge, String> {
 
     @Query("select e.descendant from Edge e where e.ancestor.id = :folderId and e.descendant.status.code <> 'DELETED' and e.edgeType = :edgeType")
     List<FileRecord> serveDescendants(@Param("folderId") String folderId, @Param("edgeType") EdgeType edgeType);
+
+    @Query("select e.descendant from Edge e where e.ancestor.id = :folderId and e.descendant.status.code <> 'DELETED' and e.edgeType in :edgeType")
+    List<FileRecord> serveDescendants(@Param("folderId") String folderId, @Param("edgeType") List<EdgeType> edgeType);
 
     void deleteByAncestorInAndDescendantIn(Set<FileRecord> ancestors, Set<FileRecord> descendants);
 

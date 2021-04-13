@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.List;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -46,6 +47,10 @@ public class UserService implements UserDetailsService {
     @Override
     public User loadUserByUsername(String s) throws UsernameNotFoundException {
         return userRepo.findByUsername(s).orElseThrow(() -> new UsernameNotFoundException(s));
+    }
+
+    public List<User> loadUsersByUsername(List<String> ss) {
+        return userRepo.findAllByUsernameIn(ss);
     }
 
     public User createUser(String username, String password, String email) {

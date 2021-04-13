@@ -11,6 +11,7 @@ create table file (
     file_type varchar(31) -- file, folder, shortcut etc
 );
 
+-- This is the so-called 'CLOSURE TABLE'. It is a way to store hierarchy data in relational databases
 create table edge(
     id varchar(63) not null primary key,
     ancestor varchar(63) constraint fk_edge_ancestor_file references file (id) on delete cascade,

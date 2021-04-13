@@ -1,1 +1,0 @@
-release: java -cp target/classes/:target/dependency/* edu.myrza.todoapp.config.Migrations

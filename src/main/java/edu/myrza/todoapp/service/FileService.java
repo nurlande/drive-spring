@@ -5,6 +5,7 @@ import edu.myrza.todoapp.model.dto.files.FileRecordDto;
 import edu.myrza.todoapp.model.entity.*;
 import edu.myrza.todoapp.model.enums.EdgeType;
 import edu.myrza.todoapp.model.enums.FileType;
+import edu.myrza.todoapp.repos.AccessLevelRepository;
 import edu.myrza.todoapp.repos.EdgeRepository;
 import edu.myrza.todoapp.repos.FileRepository;
 import edu.myrza.todoapp.repos.StatusRepository;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,18 +31,21 @@ public class FileService {
     private final StatusRepository statusRepository;
     private final FileRepository fileRepository;
     private final EdgeRepository edgeRepository;
+    private final AccessLevelRepository accessLevelRepo;
 
     @Autowired
     public FileService(
             FileSystemUtil fileSystemUtil,
             StatusRepository statusRepository,
             FileRepository fileRepository,
-            EdgeRepository edgeRepository)
+            EdgeRepository edgeRepository,
+            AccessLevelRepository accessLevelRepo)
     {
         this.fileSystemUtil = fileSystemUtil;
         this.statusRepository = statusRepository;
         this.fileRepository = fileRepository;
         this.edgeRepository = edgeRepository;
+        this.accessLevelRepo = accessLevelRepo;
     }
 
     // USER RELATED OPERATIONS
@@ -120,7 +125,7 @@ public class FileService {
     public Resource downloadFiles(User user, List<String> ids) throws IOException {
 
         // create a tree of files/folder you are gonna send back
-        List<TreeNode> nodes = buildTree(fileRepository.findAllById(ids));
+        List<TreeNode> nodes = buildTree(user, fileRepository.findAllById(ids));
 
         // use the tree to create appropriate .zip file
         File compressedFile = fileSystemUtil.compressAndReturnFiles(user.getUsername(), nodes);
@@ -256,7 +261,8 @@ public class FileService {
 
     @Transactional(readOnly = true)
     public List<FileRecordDto> serveFolderContent(User user, String folderId) {
-        return edgeRepository.serveDescendants(folderId, EdgeType.DIRECT).stream()
+        return edgeRepository.serveDescendants(folderId, Arrays.asList(EdgeType.DIRECT, EdgeType.SHARED)).stream()
+                             .filter(byUser(user))
                              .map(this::toDto)
                              .collect(Collectors.toList());
     }
@@ -301,9 +307,11 @@ public class FileService {
         FileRecord fileRecord = fileRepository.findById(fileId).orElseThrow(() -> new RuntimeException("File [" + fileId + "] not found"));
 
         // Check if the file has been deleted by owner
-        if(fileRecord.getStatus().getCode().equals(Status.Code.DELETED)) {
+        if(fileRecord.getStatus().getCode().equals(Status.Code.DELETED))
             throw new RuntimeException("throw appropriate exception here");
-        }
+
+        if(!fileRecord.getOwner().equals(user) && !accessLevelRepo.hasReadOnlyLevel(user, fileRecord))
+            throw new RuntimeException("The user has no right to download the file. throw appropriate exception here");
 
         ResourceDecorator resourceDecorator = new ResourceDecorator();
 
@@ -316,12 +324,33 @@ public class FileService {
 
     // HELPER OPERATIONS
 
-    private List<TreeNode> buildTree(List<FileRecord> files) {
+
+    Optional<FileRecord> findById(String id) {
+        return fileRepository.findById(id);
+    }
+
+    List<FileRecord> getRootFolders(List<User> users) {
+        List<String> ids = users.stream().map(User::getUsername).collect(Collectors.toList());
+        return fileRepository.findAllById(ids);
+    }
+
+    Set<FileRecord> getAllDescendants(FileRecord folder) {
+        return edgeRepository.serveAllDescendants(folder.getId());
+    }
+
+    void saveEdges(List<Edge> edges) {
+        edgeRepository.saveAll(edges);
+    }
+
+    private List<TreeNode> buildTree(User user, List<FileRecord> files) {
         List<TreeNode> nodes = new ArrayList<>();
 
         for(FileRecord file : files) {
 
             if(file.getStatus().getCode().equals(Status.Code.DELETED))
+                continue;
+
+            if(!file.getOwner().equals(user) && !accessLevelRepo.hasReadOnlyLevel(user, file))
                 continue;
 
             if(file.getFileType().equals(FileType.FILE)) {
@@ -341,7 +370,7 @@ public class FileService {
 
                 List<FileRecord> subFiles = edgeRepository.serveDescendants(file.getId(), EdgeType.DIRECT);
 
-                folderTreeNode.setSubnodes(buildTree(subFiles));
+                folderTreeNode.setSubnodes(buildTree(user, subFiles));
                 nodes.add(folderTreeNode);
             }
         }
@@ -397,4 +426,7 @@ public class FileService {
         return edge;
     }
 
+    private Predicate<FileRecord> byUser(User user) {
+        return file -> file.getOwner().equals(user) || accessLevelRepo.hasReadOnlyLevel(user, file);
+    }
 }
