@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,6 +41,7 @@ public class AuthenticationController {
         this.userService = userService;
     }
 
+    @CrossOrigin("*")
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody LoginRequest request) {
 
@@ -59,6 +61,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(new LoginResponse(username, user.getEmail(), token, username));
     }
 
+    @CrossOrigin("*")
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
 
@@ -66,6 +69,7 @@ public class AuthenticationController {
         return ResponseEntity.ok().build();
     }
 
+    @CrossOrigin("*")
     @PostMapping("/register")
     public ResponseEntity<?> registerNewUser(@RequestBody RegistrationRequest req) {
         return ResponseEntity.ok(userService.registerUser(req));

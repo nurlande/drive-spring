@@ -35,6 +35,7 @@ public class FileController {
 
     // OPERATIONS APPLIED TO BOTH FILES AND FOLDERS
 
+    @CrossOrigin("*")
     @PostMapping("/file/{fileId}/rename/{newName}")
     public ResponseEntity<?> renameFile(Principal principal, @PathVariable("fileId") String fileId, @PathVariable("newName") String newName) {
 
@@ -44,6 +45,7 @@ public class FileController {
         return optDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    @CrossOrigin("*")
     @GetMapping("/files/download")
     public ResponseEntity<Resource> serveFiles(Principal principal, @RequestBody FileIdsWrapper idsWrapper) throws IOException {
 
@@ -56,6 +58,7 @@ public class FileController {
                 .body(resource);
     }
 
+    @CrossOrigin("*")
     @PostMapping("/files/move")
     public List<FileRecordDto> moveFiles(Principal principal, @RequestBody MoveFilesReq req) {
 
@@ -63,6 +66,7 @@ public class FileController {
         return fileService.moveFiles(user, req.getSrcId(), req.getDestId(), req.getFileIds());
     }
 
+    @CrossOrigin("*")
     @DeleteMapping("/files/delete")
     public void deleteFiles(Principal principal, @RequestBody FileIdsWrapper idsWrapper) {
 
@@ -72,6 +76,7 @@ public class FileController {
 
     // FOLDER OPERATIONS
 
+    @CrossOrigin("*")
     @PostMapping("/folder/{parentFolderId}/new/{newFolderName}")
     public FileRecordDto createFolder(
             Principal principal,
@@ -82,6 +87,7 @@ public class FileController {
         return fileService.createFolder(user, parentFolderId, newFolderName);
     }
 
+    @CrossOrigin("*")
     @GetMapping("/folder/{folderId}/content")
     public List<FileRecordDto> serveFolderContent(Principal principal, @PathVariable("folderId") String folderId) {
         User user = userService.loadUserByUsername(principal.getName());
@@ -90,6 +96,7 @@ public class FileController {
 
     // FILE OPERATIONS
 
+    @CrossOrigin("*")
     @PostMapping("/folder/{folderId}/upload")
     public List<FileRecordDto> uploadFiles(
             Principal principal,
@@ -100,6 +107,7 @@ public class FileController {
         return fileService.uploadFiles(user, folderId, files);
     }
 
+    @CrossOrigin("*")
     @GetMapping("/file/download/{fileId}")
     public ResponseEntity<Resource> serveFile(Principal principal, @PathVariable("fileId") String fileId) throws IOException {
         User user = userService.loadUserByUsername(principal.getName());
